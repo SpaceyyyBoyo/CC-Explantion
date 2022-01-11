@@ -6,7 +6,7 @@ xplants.GameVersion = '2.031';
 
 xplants.launch = function() {	
 	xplants.init = function() {
-		
+		xplants.AddPlants();
 		xplants.plantData = '';
 		xplants.AddMutates();
 		xplants.FixSave();
