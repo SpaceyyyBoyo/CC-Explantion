@@ -140,11 +140,11 @@ xplants.launch = function() {
 		M.plants['bakeberry'].children.push('princeroot');
 		M.plants['whiteChocoroot'].children.push('princeroot');
 
-		for (var i in M.plants)
+		/*for (var i in M.plants)
 		{
 			//console.log(M.plants[i].key);
            		M.plants[i].immortal = 1;
-        	}
+        	}*/
 		CCSE.ReplaceCodeIntoFunction('M.getMuts', "if (neighsM['elderwort']>=1 && neighsM['crumbspore']>=1) muts.push(['ichorpuff',0.002]);", `
 			if (neighsM['elderwort']>=1 && neighsM['crumbspore']>=1) muts.push(['ichorpuff',0.002]);
 			
