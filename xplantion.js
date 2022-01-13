@@ -1,7 +1,7 @@
 if(xplants === undefined) var xplants = {};
 if(typeof CCSE == 'undefined') Game.LoadMod('https://klattmose.github.io/CookieClicker/CCSE.js');
 xplants.name = 'Garden ExPlantion';
-xplants.version = '1.0';
+xplants.version = '1.02';
 xplants.GameVersion = '2.031';
 
 xplants.launch = function() {	
@@ -9,8 +9,14 @@ xplants.launch = function() {
 		xplants.AddPlants();
 		xplants.plantData = '';
 		xplants.AddMutates();
+		xplants.ComputeBoosts();
 		xplants.FixSave();
 		xplants.isLoaded = 1;
+		xplants.iconURL = 'https://spaceyyyboyo.github.io/CC-Explantion/xplantsIcon.png';
+		if (Game.prefs.popups) Game.Popup('xPlansion v' + xplants.version + ' loaded!');
+		else Game.Notify('xPlants','xPlansion v' + xplants.version + ' loaded!', [0, 0, xplants.iconURL], 1, 1);
+		xplants.Note = Game.NotesById[Game.noteId - 1];
+		xplants.Note.life = 3000;
 	}
 	
 	xplants.save = function() {
@@ -89,8 +95,8 @@ xplants.launch = function() {
 				cost:5,
 				costM:100,
 				ageTick:1,
-				ageTickR:0.5,
-				mature:18,
+				ageTickR:3,
+				mature:42,
 				children:['princeroot'],
 				effsStr:'<div class="green">&bull; +0.1% CpS per 10 grandmas </div><div class="red">&bull; Pledge lasts for 2% less time</div>',
 				q:'Having failed to been born into wealth, this plant works hard in hope it will one day climb the social pyramid...',
@@ -101,18 +107,44 @@ xplants.launch = function() {
 				icon:37,
 				cost:600,
 				costM:1111111111,
-				ageTick:1,
-				ageTickR:5,
-				mature:27,
+				ageTick:0.01,
+				ageTickR:0.5,
+				mature:10,
 				children:[],
-				effsStr:'<div class="green">&bull; boosts surrounding whiskerblooms (3x3) by 100% </div><div class="red">&bull; surrounding plants (3x3) are 5 times as likely to be overtaken</div>',
-				q:'As suggested by its extremely rich taste, this root is the definition of entitled. It seemingly loves milk but has a tendency to attract weeds and fungi.',
+				effsStr:'<div class="green">&bull; boosts surrounding whiskerblooms (3x3) by 80% per adjacent whiskerbloom </div>',
+				q:'As suggested by its extremely rich taste, this root is the definition of entitled. It seemingly loves the taste of milk, but takes a long time to grow',
 			},
+			'frosthorn':{
+				name:'Frosthorn',
+				fungus:false,
+				icon:38,
+				cost:86400,
+				costM:121212121212,
+				ageTick:1,
+				ageTickR:0.8,
+				mature:35,
+				children:['frosthorn'],
+				effsStr:'<div class="green">&bull; Freezes surrounding plants (3x3) </div>',
+				q:'Frosthorns form on top of rocks and grow large, sharp thorns to avoid being eaten. The thorns aren\'t needed, however, because the sheer cold of its body alone freezes anything near it.',
+			},
+			'dragonsnap':{
+				name:'Dragonsnap',
+				fungus:false,
+				icon:39,
+				cost:86400,
+				costM:121212121212,
+				ageTick:0.8,
+				ageTickR:1,
+				mature:35,
+				children:['whiskerbloom'],
+				effsStr:'<div class="green">&bull; Boosts active dragon aura(s) by +1% </div><div class="red">&bull; Itself and plants surrounding it (3x3) cannot be frozen </div>',
+				q:'Dragonsnaps enjoy curling up in warm places, despite already being an incredibly hot plant. These plants seem to also be favored by mythical creatures for the good luck they bring.',
+			},
+
 		}
 		xplants.plantsById=[];var n=0;
 		for (var i in xplants.plants)
 		{
-			//if(xplants.unlocked!=1) xplants.plants[i].unlocked=0;
 			xplants.plants[i].id=n;
 			xplants.plants[i].key=i;
 			xplants.plants[i].matureBase=xplants.plants[i].mature;
@@ -122,7 +154,6 @@ xplants.launch = function() {
 		}
 		for (var i in xplants.plants) {
 			CCSE.NewPlant(xplants.plants[i].key, xplants.plants[i]);
-			//console.log(xplants.plants[i]);
 		}
 		
 		M.toRebuild = true;
@@ -140,11 +171,12 @@ xplants.launch = function() {
 		M.plants['bakeberry'].children.push('princeroot');
 		M.plants['whiteChocoroot'].children.push('princeroot');
 
-		/*for (var i in M.plants)
-		{
-			//console.log(M.plants[i].key);
-           		M.plants[i].immortal = 1;
-        	}*/
+		M.plants['ichorpuff'].children.push('frosthorn');
+		M.plants['crumbspore'].children.push('frosthorn');
+	
+		M.plants['everdaisy'].children.push('dragonsnap');
+		M.plants['nursetulip'].children.push('dragonsnap');
+
 		CCSE.ReplaceCodeIntoFunction('M.getMuts', "if (neighsM['elderwort']>=1 && neighsM['crumbspore']>=1) muts.push(['ichorpuff',0.002]);", `
 			if (neighsM['elderwort']>=1 && neighsM['crumbspore']>=1) muts.push(['ichorpuff',0.002]);
 			
@@ -153,14 +185,36 @@ xplants.launch = function() {
 			
 			if (neighsM['bakeberry']>=1 && neighsM['peasantrye']>=1 && neighsM['whiteChocoroot']>=1) muts.push(['princeroot',0.01]);
 
+			if (neighsM['ichorpuff']>=4) muts.push(['frosthorn',0.0075]);
+			if (neighsM['crumbspore']>=8) muts.push(['frosthorn',0.01]);
+			
+			if (neighsM['nursetulip']>=1 && neighsM['everdaisy']>=1) muts.push(['dragonsnap',0.02]);
+
 			`, 0, preEvalScript);
+	}
+	xplants.ComputeBoosts = function() {
+		var preEvalScript = "var M = Game.Objects['Farm'].minigame;";
+		var M = Game.Objects['Farm'].minigame;
+		
 		CCSE.ReplaceCodeIntoFunction('M.computeBoostPlot', "else if (name=='ichorpuff') {ageMult=0.5;powerMult=0.5;range=1;}",`
 			else if (name=='ichorpuff') {ageMult=0.5;powerMult=0.5;range=1;}
 			else if (name=='princeroot') {
-				weedMult=5;
 				range=1;
 				var Y = y;
 				var X = x;
+				var whiskerBoost = 1;
+				for (var yMilk=Math.max(0,Y-range);yMilk<Math.min(6,Y+range+1);yMilk++)
+				{
+					for (var xMilk=Math.max(0,X-range);xMilk<Math.min(6,X+range+1);xMilk++)
+					{
+						var neigh = M.getTile(xMilk, yMilk);
+						if(M.plantsById[neigh[0]-1] == M.plants['whiskerbloom']) {
+							whiskerBoost *= 1.8;
+						}
+					}
+				}
+				Y = y;
+				X = x;
 				for (var yMilk=Math.max(0,Y-range);yMilk<Math.min(6,Y+range+1);yMilk++)
 				{
 					for (var xMilk=Math.max(0,X-range);xMilk<Math.min(6,X+range+1);xMilk++)
@@ -170,26 +224,138 @@ xplants.launch = function() {
 						else
 						{
 							if(M.plantsById[neigh[0]-1] == M.plants['whiskerbloom']) {
-								M.plotBoost[yMilk][xMilk][1]*=2;
+								M.plotBoost[yMilk][xMilk][1]*=whiskerBoost;
 							}
 						}
 					}
 				}
 			}`, 0, preEvalScript);
-		xplants.effs = 1;
+
+		xplants.effs = [1,1];
 		CCSE.ReplaceCodeIntoFunction('M.computeEffs', `M.toCompute=false;`, `
 			M.toCompute=false;
-			var pledgeEffs = 1;`, 0, preEvalScript);
+			var pledgeEffs = 1;
+			var dragEffs = 1;`, 0, preEvalScript);
 		CCSE.ReplaceCodeIntoFunction('M.computeEffs', `else if (name=='shriekbulb') {effs.cps*=1-0.02*mult;}`, `
 			else if (name=='shriekbulb') {effs.cps*=1-0.02*mult;}
-			else if (name=='peasantrye') {effs.cps+=0.001*Math.floor(Game.Objects['Grandma'].amount/10)*mult;pledgeEffs*=0.98;}`, 0, preEvalScript);
+			else if (name=='peasantrye') {effs.cps+=0.001*Math.floor(Game.Objects['Grandma'].amount/10)*mult;pledgeEffs*=0.98;}
+			else if (name=='dragonsnap') {dragEffs*=1.01}`, 0, preEvalScript);
 		CCSE.ReplaceCodeIntoFunction('M.computeEffs', `M.effs=effs;`,`
 			M.effs=effs;
-			xplants.effs = pledgeEffs;`, 0, preEvalScript);
-		CCSE.ReplaceCodeIntoFunction('Game.getPledgeDuration', `return Game.fps*60*(Game.Has('Sacrificial rolling pins')?60:30);`,`
-			return xplants.effs*Game.fps*60*(Game.Has('Sacrificial rolling pins')?60:30);`, 0);
+			xplants.effs[0] = pledgeEffs;
+			xplants.effs[1] = dragEffs;`, 0, preEvalScript);
+		CCSE.ReplaceCodeIntoFunction('M.computeBoostPlot', 'M.plotBoost[y][x]=[1,1,1];', `M.plotBoost[y][x]=[1,1,1,1];`, 0, preEvalScript);
+		CCSE.ReplaceCodeIntoFunction('M.computeBoostPlot', "else if (name=='ichorpuff') {ageMult=0.5;powerMult=0.5;range=1;}", `
+			else if (name=='ichorpuff') {ageMult=0.5;powerMult=0.5;range=1;}
+			else if (name=='frosthorn') {
+				range=1;
+				var Y = y;
+				var X = x;
+				for (var yFreeze=Math.max(0,Y-range);yFreeze<Math.min(6,Y+range+1);yFreeze++) {
+					for (var xFreeze=Math.max(0,X-range);xFreeze<Math.min(6,X+range+1);xFreeze++) {
+						var neigh = M.getTile(xFreeze, yFreeze);
+						if (X==xFreeze && Y==yFreeze) {}
+						else {
+							var tile=M.plot[yFreeze][xFreeze];
+							if (tile[0]>0) {
+								if(M.plantsById[tile[0]-1] != M.plants['dragonsnap']) {
+									var me=M.plantsById[tile[0]-1];
+									var age=tile[1];
+									M.plotBoost[yFreeze][xFreeze][3]=2;
+									if (me.key=='cheapcap' && Math.random()<0.15) {
+										M.plot[yFreeze][xFreeze]=[0,0];
+										if (me.onKill) neigh.onKill(xFreeze,yFreeze,age);
+										M.toRebuild=true;
+									}
+								}
+							}
+						}
+					}
+				}
+			}`, 0, preEvalScript);
+		CCSE.ReplaceCodeIntoFunction('M.computeBoostPlot', "else if (name=='ichorpuff') {ageMult=0.5;powerMult=0.5;range=1;}", `
+			else if (name=='ichorpuff') {ageMult=0.5;powerMult=0.5;range=1;}
+			else if (name=='dragonsnap') {
+				range=1;
+				var Y = y;
+				var X = x;
+				for (var yFreeze=Math.max(0,Y-range);yFreeze<Math.min(6,Y+range+1);yFreeze++) {
+					for (var xFreeze=Math.max(0,X-range);xFreeze<Math.min(6,X+range+1);xFreeze++) {
+						var neigh = M.getTile(xFreeze, yFreeze);
+						var tile=M.plot[yFreeze][xFreeze];
+						if (tile[0]>0) {
+							var me=M.plantsById[tile[0]-1];
+							M.plotBoost[yFreeze][xFreeze][3]=0;
+						}
+					}
+				}
+			}`, 0, preEvalScript);
+		xplants.SpliceAround('M.logic', 30, 122, `
+			if ((M.freeze && M.plotBoost[y][x][3]==0) || (!M.freeze && M.plotBoost[y][x][3]!=2)) {`, `}`, preEvalScript);
+		CCSE.ReplaceCodeIntoFunction('M.logic', 'if (!M.freeze)', `
+			var frozen=1;
+			for (var y=0;y<6;y++) {
+				for (var x=0;x<6;x++) {
+					var tile=M.plot[y][x];
+					if (tile[0]>0) {
+						var me=M.plantsById[tile[0]-1];
+						var name=me.key;
+						if ((M.freeze && M.plotBoost[y][x][3]==0) || !M.freeze) {
+							frozen=0;
+						}
+					}
+				}
+			}
+			xplants.freeze=frozen;
+			if (!frozen)`, 0, preEvalScript);
+
+		xplants.SpliceAround('M.computeBoostPlot', 46, 162, `if ((M.freeze && (name=='dragonsnap' || M.plotBoost[y][x][3]==0)) || (!M.freeze && M.plotBoost[y][x][3]!=2)) {`, `}`, preEvalScript);
 		
+		CCSE.ReplaceCodeIntoFunction('M.computeEffs', 'if (!M.freeze)', `
+			var frozen=1;
+			for (var y=0;y<6;y++) {
+				for (var x=0;x<6;x++) {
+					var tile=M.plot[y][x];
+					if (tile[0]>0) {
+						var me=M.plantsById[tile[0]-1];
+						var name=me.key;
+						if ((M.freeze && M.plotBoost[y][x][3]==0) || !M.freeze) {
+							frozen=0;
+						}
+					}
+				}
+			}
+			if (!frozen)`, 0, preEvalScript);
+		// More HTML fixes //
+		CCSE.ReplaceCodeIntoFunction('M.draw', `if (M.freeze) l('gardenNextTick').innerHTML='Garden is frozen. Unfreeze to resume.';`, `
+			if (M.freeze && xplants.freeze) l('gardenNextTick').innerHTML='Garden is frozen. Unfreeze to resume.';
+			else if(M.freeze && !xplants.freeze) l('gardenNextTick').innerHTML='Garden is frozen, but some plants are still growing! Next tick in: '+Game.sayTime((M.nextStep-Date.now())/1000*30+30,-1)+'';`, 0, preEvalScript);
+		CCSE.ReplaceCodeIntoFunction('M.tileTooltip', `(M.plotBoost[y][x]!=[1,1,1]?('<small>'+`, `
+			(M.plotBoost[y][x]!=[1,1,1,1]?('<small>'+
+			(M.plotBoost[y][x][3]==2?'<br>Frozen!':'')+
+			(M.plotBoost[y][x][3]==0?'<br>Hot!':'')+`, 0, preEvalScript);
+		CCSE.ReplaceCodeIntoFunction('M.tileTooltip', `(M.plotBoost[y][x]!=[1,1,1]?('<small>'+`, `
+			(M.plotBoost[y][x]!=[1,1,1,1]?('<small>'+
+			(M.plotBoost[y][x][3]==2?'<br>Frozen!':'')+
+			(M.plotBoost[y][x][3]==0?'<br>Hot!':'')+`, 0, preEvalScript);
+		xplants.doMults();
 	}
+
+	xplants.doMults = function() {
+		var preEvalScript = "var M = Game.Objects['Farm'].minigame;";
+		var M = Game.Objects['Farm'].minigame;
+
+		CCSE.ReplaceCodeIntoFunction('Game.getPledgeDuration', `return Game.fps*60*(Game.Has('Sacrificial rolling pins')?60:30);`,`
+			return xplants.effs[0]*Game.fps*60*(Game.Has('Sacrificial rolling pins')?60:30);`, 0);
+
+		CCSE.ReplaceCodeIntoFunction('Game.auraMult', `if (Game.dragonAuras[Game.dragonAura].name==what || Game.dragonAuras[Game.dragonAura2].name==what) n=1;`, `
+			if (Game.dragonAuras[Game.dragonAura].name==what || Game.dragonAuras[Game.dragonAura2].name==what) n=xplants.effs[1];`, 0);
+		M.buildPanel();
+		M.buildPlot();
+		Game.recalculateGains=1;	
+	}
+
+
 	xplants.FixSave = function() {
 		var M = Game.Objects['Farm'].minigame;
 		var preEvalScript = "var M = Game.Objects['Farm'].minigame;";
@@ -291,18 +457,56 @@ xplants.launch = function() {
 		M.buildPlot();
 		M.buildPanel();
 	}
+	xplants.SpliceAround = function(functionName, row1, row2, code1, code2, preEvalScript) {
+		// Custom injection used for adding if's, else's, for's, and more //
 
+		if(preEvalScript) eval(preEvalScript);
+		var r1 = Math.floor(row1);
+		var r2 = Math.floor(row2);
+		if(r1 == 0 || r2 == 0) throw new Error("rows 1 and 2 can\'t equal 0");
+		
+		var temp = eval(functionName + ".toString()").split("\n");
+
+		temp.splice(r1, 0, code1);
+		temp.splice(r2 + code1.split("\n").length, 0, code2);
+
+		eval(functionName + "=" + temp.join("\n"));
+
+		// Used CCSE's injection code as a baseline //
+	}
+
+	// Funky debug things for testing //
+	
+	xplants.doImmortal = function() {
+		var M = Game.Objects['Farm'].minigame;
+		for (var i in M.plants)
+		{
+            		M.plants[i].immortal=(M.plants[i].immortal?0:1);
+        	}
+	}
+	xplants.getFreeze = function() {
+		var M = Game.Objects['Farm'].minigame;
+		for (var y=0;y<6;y++) {
+			for (var x=0;x<6;x++) {
+				var tile=M.plot[y][x];
+				if (tile[0]>0) {
+					var me=M.plantsById[tile[0]-1];
+					var name=me.key;
+					if ((M.freeze && M.plotBoost[y][x][3]==0) || !M.freeze) {
+						console.log("Not Frozen: " + name);
+					}
+					else {
+						console.log("Frozen: " + name);
+					}
+				}
+			}
+		}
+	}
 	Game.registerMod(xplants.name, xplants);
 }
-/*
-var M = Game.Objects['Farm'].minigame;
-for (var i in M.plants)
-		{
-			//console.log(M.plants[i].key);
-            M.plants[i].immortal = 1;
-        }
-*/
-//salt plant, glasswort /'princeroot', 'witchhazel'
+
+//salt plant, glasswort, 'witchhazel', kingbeet
+
 if(!xplants.isLoaded){
 	if(CCSE && CCSE.isLoaded){
 		xplants.launch();
